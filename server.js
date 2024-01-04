@@ -3,6 +3,13 @@ import Database from 'better-sqlite3';
 
 const app = express();
 
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  next();
+});
+
 app.use(express.json());
 
 app.get('/', (req, res) => {
@@ -118,17 +125,36 @@ app.put('/api/v1/clients/:id', (req, res) => {
   const id = parseInt(req.params.id , 10);
   const { valid, messageObj } = validateId(id);
   if (!valid) {
-    res.status(400).send(messageObj);
+    return res.status(400).send(messageObj);
   }
 
   let { status, priority } = req.body;
   let clients = db.prepare('select * from clients').all();
   const client = clients.find(client => client.id === id);
+  
 
   /* ---------- Update code below ----------*/
-
-
-
+  // validate priority
+  const validatePriorityVal = validatePriority(priority);
+  if(!validatePriorityVal.valid){
+    return res.status(400).send(validatePriorityVal.messageObj)
+  }
+  // modify object with new values
+  const newClientItem  = {
+    ...client, ...{status: status, priority: priority}
+  }
+  // update value in the database 
+  /**
+   * create clause
+   * create update command
+   * run update command
+   */
+  const setClauses = Object.keys(newClientItem).map(column =>`${column} = ?`).join(", ")
+  const updateCommand =  db.prepare(`UPDATE clients SET ${setClauses} WHERE id = ?`)
+  const result = updateCommand.run([...Object.values(newClientItem), id])
+  if(result.changes != 1){
+    return res.status(400).send("Error updating client")
+  }
   return res.status(200).send(clients);
 });
 
