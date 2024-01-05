@@ -153,8 +153,11 @@ app.put('/api/v1/clients/:id', (req, res) => {
   const updateCommand =  db.prepare(`UPDATE clients SET ${setClauses} WHERE id = ?`)
   const result = updateCommand.run([...Object.values(newClientItem), id])
   if(result.changes != 1){
-    return res.status(400).send("Error updating client")
+    throw new Error("Error Updating Client")
+    // return res.status(400).send("Error updating client")
   }
+  
+  clients = db.prepare('select * from clients').all();
   return res.status(200).send(clients);
 });
 
